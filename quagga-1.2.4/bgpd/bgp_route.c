@@ -1661,6 +1661,10 @@ bgp_process_main (struct work_queue *wq, void *data)
     bgp_info_reap (rn, old_select);
   
   UNSET_FLAG (rn->flags, BGP_NODE_PROCESS_SCHEDULED);
+  if (work_queue ==NULL)
+     policy_checking_flag=on;
+  else
+     policy_checking_flag=off;
   return WQ_SUCCESS;
 }
 

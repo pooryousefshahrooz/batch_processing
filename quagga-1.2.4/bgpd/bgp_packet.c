@@ -702,6 +702,14 @@ bgp_write_proceed (struct peer *peer)
 int
 bgp_write (struct thread *thread)
 {
+    /*
+  this function writes packets on the socket if there is anything in the outgoing queue. 
+  We can write at most BGP_WRITE_PACKET_MAX number of packets each time on the socket. This BGP_WRITE_PACKET_MAX parameter can be used for stop and wait idea implementation.
+  */
+  // here we first call bgp_read_all function to check and read all update packets in the incomming scokets for all peers
+  bgp_read_all();
+  if (policy_checking_flag==off)// we check if the flag for checking export policies has been set on or not
+    return;
   struct peer *peer;
   u_char type;
   struct stream *s; 
@@ -2550,7 +2558,21 @@ bgp_recent_clock (void)
 {
   return recent_relative_time().tv_sec;
 }
+/* read all packets on the incomming socket of all peers and set the export policy checking off if it read at least one packet*/
+int bgp_read_all()
+{
+    m = select(fd_set);
+    if(m>0) 
+        for thread in fd_set:
+            peer = thread.peer;
+            there_is_a_packet = true;
+            while(there_is_a_packet)
+                there_is_a_packet = bgp_read(peer);
 
+        policy_checking_flag=on;
+    else
+        policy_checking_flag=off;
+}
 /* Starting point of packet process function. */
 int
 bgp_read (struct thread *thread)
