@@ -58,7 +58,9 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #include "bgpd/bgp_vty.h"
 #include "bgpd/bgp_mpath.h"
 #include "bgpd/bgp_nht.h"
-
+/* batch processing code: we use global variables to check if all the received routes have beeen processed or not */
+extern int policy_checking_flag;
+extern int scheduled_routes_counter;
 /* Extern from bgp_dump.c */
 extern const char *bgp_origin_str[];
 extern const char *bgp_origin_long_str[];
@@ -1615,6 +1617,12 @@ bgp_process_main (struct work_queue *wq, void *data)
           
 	  UNSET_FLAG (old_select->flags, BGP_INFO_MULTIPATH_CHG);
           UNSET_FLAG (rn->flags, BGP_NODE_PROCESS_SCHEDULED);
+          /* batch processing code: we check if we have processed all scheduled routes to be processed or not.
+          if yes, the policy_checking_flag will set to on. */
+          if (--scheduled_routes_counter<1)
+            policy_checking_flag=1;
+          else
+            policy_checking_flag=0;
           return WQ_SUCCESS;
         }
     }
@@ -1661,10 +1669,12 @@ bgp_process_main (struct work_queue *wq, void *data)
     bgp_info_reap (rn, old_select);
   
   UNSET_FLAG (rn->flags, BGP_NODE_PROCESS_SCHEDULED);
-  if (work_queue ==NULL)
-     policy_checking_flag=on;
+  /* batch processing code: we check if we have processed all scheduled routes to be processed or not.
+  if yes, the policy_checking_flag will set to on. */
+  if (--scheduled_routes_counter<1)
+    policy_checking_flag=1;
   else
-     policy_checking_flag=off;
+    policy_checking_flag=0;
   return WQ_SUCCESS;
 }
 
@@ -1748,6 +1758,9 @@ bgp_process (struct bgp *bgp, struct bgp_node *rn, afi_t afi, safi_t safi)
     {
       case BGP_TABLE_MAIN:
         work_queue_add (bm->process_main_queue, pqnode);
+        /* batch processing code: we schedule a route to be processed in future here */
+        ++scheduled_routes_counter;
+        policy_checking_flag = 0;
         break;
       case BGP_TABLE_RSCLIENT:
         work_queue_add (bm->process_rsclient_queue, pqnode);

@@ -65,7 +65,10 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #ifdef HAVE_SNMP
 #include "bgpd/bgp_snmp.h"
 #endif /* HAVE_SNMP */
-
+/* batch processing code: we use these two variables to check 
+if all scheduled rotues have been processed and then set the policy checking fal to on */
+int policy_checking_flag;
+int scheduled_routes_counter;
 /* BGP process wide configuration.  */
 static struct bgp_master bgp_master;
 
@@ -5542,6 +5545,9 @@ void
 bgp_init (void)
 {
 
+/* batch processing code: set the policy_checking_flag to 1 and scheduled routes number ot zero */
+  policy_checking_flag = 1;
+  scheduled_routes_counter = 0;
   /* allocates some vital data structures used by peer commands in vty_init */
   bgp_scan_init ();
 

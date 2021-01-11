@@ -305,7 +305,8 @@ bgp_adj_out_unset (struct bgp_node *rn, struct peer *peer, struct prefix *p,
       BGP_ADV_FIFO_ADD (&peer->sync[afi][safi]->withdraw, &adv->fifo);
 
       /* Schedule packet write. */
-      BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
+      /* batch prcessing code: we comment below command to not send out Withdraw messages immidiatly */
+      // BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
     }
   else
     {
